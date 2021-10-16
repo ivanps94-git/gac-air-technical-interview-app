@@ -36,6 +36,11 @@ class Products
     private $stock;
 
     /**
+     * @ORM\Column(type="datetime_immutable")
+     */
+    private $created_at;
+
+    /**
      * @ORM\OneToMany(targetEntity=StockHistoric::class, mappedBy="product_id", orphanRemoval=true)
      */
     private $stockHistorics;
@@ -85,6 +90,19 @@ class Products
 
         return $this;
     }
+
+    public function getCreatedAt(): ?\DateTimeImmutable
+    {
+        return $this->created_at;
+    }
+
+    public function setCreatedAt(\DateTimeImmutable $created_at): self
+    {
+        $this->created_at = $created_at;
+
+        return $this;
+    }
+
 
     /**
      * @return Collection|StockHistoric[]

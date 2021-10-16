@@ -14,10 +14,12 @@ use Symfony\Component\Routing\Annotation\Route;
 class BaseController extends AbstractController
 {
     var $entityNames;
+    var $controllerName;
     public function __construct()
     {
         //Primer elemento nombre en singular, segundo elemento nombre en plural, masculino 0 femenino 1
         $this->entityNames = array("","",0);
+        $this->controllerName = "";
     }
 
     public function getAppURL()

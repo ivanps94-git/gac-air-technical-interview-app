@@ -6,27 +6,34 @@ use App\Repository\UsersRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Security\Core\User\UserInterface;
 
 /**
  * @ORM\Entity(repositoryClass=UsersRepository::class)
+ * @method string getUserIdentifier()
  */
-class Users
+class Users implements UserInterface
 {
     /**
      * @ORM\Id
      * @ORM\GeneratedValue
      * @ORM\Column(type="integer")
      */
+
+
     private $id;
 
     /**
      * @ORM\Column(type="string", length=128)
      */
+
     private $username;
+
 
     /**
      * @ORM\Column(type="string", length=256)
      */
+
     private $password;
 
     /**
@@ -44,9 +51,17 @@ class Users
      */
     private $stockHistorics;
 
+    /**
+     * @ORM\Column(type="json")
+     */
+    private $roles = [];
+
+
+
     public function __construct()
     {
         $this->stockHistorics = new ArrayCollection();
+        $this->setCreatedAt(new \DateTimeImmutable('now'));
     }
 
     
@@ -98,10 +113,11 @@ class Users
 
     public function setCreatedAt(\DateTimeImmutable $created_at): self
     {
-        $this->created_�at = $created_at;
+        $this->created_at = $created_at;
 
         return $this;
     }
+
 
     /**
      * @return Collection|StockHistoric[]
@@ -133,4 +149,41 @@ class Users
         return $this;
     }
 
+    /**
+     * Gets triggered only on insert
+
+     * @ORM\PrePersist
+     */
+    public function onPrePersist()
+    {
+        $this->created_at = new \DateTimeImmutable("now");
+    }
+
+    public function getRoles(): ?array
+    {
+        return $this->roles;
+    }
+
+    public function setRoles(array $roles): self
+    {
+        $this->roles = $roles;
+
+        return $this;
+    }
+
+
+    public function getSalt()
+    {
+        // TODO: Implement getSalt() method.
+    }
+
+    public function eraseCredentials()
+    {
+        // TODO: Implement eraseCredentials() method.
+    }
+
+    public function __call($name, $arguments)
+    {
+        // TODO: Implement @method string getUserIdentifier()
+    }
 }

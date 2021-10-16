@@ -17,8 +17,43 @@
                     </div>
                 </div>
             </div>
+
             {{ form_start(form) }}
-            <button type="submit"></button>
+
+            <div class="{{errors is not empty and errors.username is defined ? 'form-group has-error has-danger' : 'form-group'  }}">
+                <label>{{  form_label(form.username)}}</label>
+                {{ form_widget(form.username, { 'required':'','name':'users[username]','id':'users_username','attr': {'class': 'form-control'} }) }}
+
+                {% if(errors is not empty and errors.username is defined) %}
+                    <div class="help-block with-errors">
+                        <ul class="list-unstyled">
+                            <li>Rellene este campo.</li>
+                        </ul>
+                    </div>
+                {% endif %}
+            </div>
+
+            <div class="{{ errors is not empty and errors.password is defined ? 'form-group has-error has-danger' : 'form-group'  }}">
+                <label>{{  form_label(form.password)}}</label>
+                {{ form_widget(form.password, { 'type':'password','required':'','name':'users[password]','id':'users_password','attr': {'class': 'form-control'} }) }}
+
+                {% if(errors is not empty and errors.password is defined) %}
+                    <div class="help-block with-errors">
+                        <ul class="list-unstyled">
+                            <li>Rellene este campo.</li>
+                        </ul>
+                    </div>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                <label>{{  form_label(form.active)}}</label>
+                {{ form_widget(form.active, { 'required':'', 'name':'users[active]','id':'users_active','attr': {'class': 'form-control','style':'max-width:80px'} }) }}
+
+            </div>
+            <div class="col-md-12 mt-5 text-center">
+                <button type="submit" class="btn btn-primary mr-2">Añadir {{ entityNames[0] }}</button>
+            </div>
             {{ form_end(form) }}
 
 

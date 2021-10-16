@@ -6,14 +6,17 @@ use App\Entity\Users;
 use App\Form\UsersType;
 use App\Repository\UsersRepository;
 use Doctrine\ORM\Query\Expr\Base;
+use http\Client\Curl\User;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
-use Symfony\Component\Form\Extension\Core\Type\TextType;
-use Symfony\Component\Form\Extension\Core\Type\SubmitType;
 use App\Controller\BaseController;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
+use Symfony\Component\PropertyAccess\PropertyAccess;
+use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\Component\Security\Core\Encoder\UserPasswordEncoderInterface;
 
 /**
  * @Route("/users")
@@ -21,12 +24,15 @@ use App\Controller\BaseController;
 class UsersController extends BaseController
 {
 
-    public function __construct()
+    private UserPasswordEncoderInterface $passwordEncoder;
+    public function __construct(UserPasswordEncoderInterface $passwordEncoder)
     {
         //Primer elemento nombre en singular, segundo elemento nombre en plural, masculino 0 femenino 1
         $this->entityNames[0] = "Usuario";
         $this->entityNames[1] = "Usuarios";
         $this->entityNames[2] = 0;
+        $this->passwordEncoder = $passwordEncoder;
+        $this->controllerName = "Usuarios";
     }
 
 
@@ -39,24 +45,56 @@ class UsersController extends BaseController
             'users' => $usersRepository->findAll(),
             'appURL' => $this->getAppURL(),
             'entityNames' => $this->entityNames,
+            'controllerName' => $this->controllerName,
         ]);
     }
 
     /**
      * @Route("/new", name="users_new", methods={"GET","POST"})
      */
-    public function new(Request $request): Response
+    public function new(Request $request,ValidatorInterface $validator): Response
     {
         $user = new Users();
-        $user->setCreatedAt(new \DateTimeImmutable('now'));
         $form = $this->createForm(UsersType::class, $user);
         $form->handleRequest($request);
+        $errorMessages = [];
+        $campos_validados = false;
 
-        var_dump($form->isSubmitted());
-        var_dump($form->isSubmitted() && $form->isValid());
-        if ($form->isSubmitted() && $form->isValid()) {
-            
+        $all = $request->request->all();
+        if(isset($all['users']['username'])
+            && isset($all['users']['password'])) {
+
+            $input = [
+                'username' => $all['users']['username'],
+                'password' => $all['users']['password'],
+                ];
+
+            $constraints = new Assert\Collection([
+                'username' => [new Assert\NotBlank],
+                'password' => [new Assert\notBlank],
+            ]);
+
+            $violations = $validator->validate($input, $constraints);
+            if (count($violations) > 0) {
+                $accessor = PropertyAccess::createPropertyAccessor();
+                foreach ($violations as $violation) {
+
+                    $accessor->setValue($errorMessages,
+                        $violation->getPropertyPath(),
+                        $violation->getMessage());
+                }
+            }
+            $campos_validados = true;
+        }
+
+        if ($form->isSubmitted() && $form->isValid()
+            && $campos_validados == true && sizeof($errorMessages) == 0) {
+
             $entityManager = $this->getDoctrine()->getManager();
+            $user->setCreatedAt(new \DateTimeImmutable('now'));
+            $user->setRoles(array("ROLE_ADMIN"));
+            $user->setPassword($this->passwordEncoder->encodePassword($user, $input['password']));
+
             $entityManager->persist($user);
             $entityManager->flush();
 
@@ -68,28 +106,74 @@ class UsersController extends BaseController
             'form' => $form,
             'entityNames' => $this->entityNames,
             'appURL' => $this->getAppURL(),
+            'errors' => $errorMessages,
+            'controllerName' => $this->controllerName,
         ]);
     }
 
     /**
      * @Route("/{id}", name="users_show", methods={"GET"})
      */
+
     public function show(Users $user): Response
     {
+        $entityManager = $this->getDoctrine()->getManager();
+        $repositorio = $entityManager->getRepository(Users::class);
+        $usuario = $repositorio->find($user);
         return $this->render('users/show.html.twig', [
-            'user' => $user,
+            'user' => $usuario,
+            'entityNames' => $this->entityNames,
+            'appURL' => $this->getAppURL(),
+            'controllerName' => $this->controllerName,
         ]);
     }
 
     /**
      * @Route("/{id}/edit", name="users_edit", methods={"GET","POST"})
      */
-    public function edit(Request $request, Users $user): Response
+    public function edit(Request $request, Users $user,ValidatorInterface $validator): Response
     {
+        $entityManager = $this->getDoctrine()->getManager();
+        $repositorio = $entityManager->getRepository(Users::class);
+        $user = $repositorio->find($user);
+        $user->setPassword("");
         $form = $this->createForm(UsersType::class, $user);
-        $form->handleRequest($request);
+        $errorMessages = [];
+        $campos_validados = false;
 
-        if ($form->isSubmitted() && $form->isValid()) {
+        $all = $request->request->all();
+        if(isset($all['users']['username'])
+            && isset($all['users']['password'])) {
+
+            $input = [
+                'username' => $all['users']['username'],
+                'password' => $all['users']['password'],
+            ];
+
+            $constraints = new Assert\Collection([
+                'username' => [new Assert\NotBlank],
+                'password' => [new Assert\notBlank],
+            ]);
+
+            $violations = $validator->validate($input, $constraints);
+
+            if (count($violations) > 0) {
+                $accessor = PropertyAccess::createPropertyAccessor();
+                foreach ($violations as $violation) {
+
+                    $accessor->setValue($errorMessages,
+                        $violation->getPropertyPath(),
+                        $violation->getMessage());
+                }
+            }else{
+                $form->handleRequest($request);
+            }
+
+            $campos_validados = true;
+        }
+
+        if ($form->isSubmitted() && $form->isValid()
+            && $campos_validados == true && sizeof($errorMessages) == 0) {
             $this->getDoctrine()->getManager()->flush();
 
             return $this->redirectToRoute('users_index', [], Response::HTTP_SEE_OTHER);
@@ -98,20 +182,14 @@ class UsersController extends BaseController
         return $this->renderForm('users/edit.html.twig', [
             'user' => $user,
             'form' => $form,
+            'entityNames' => $this->entityNames,
+            'appURL' => $this->getAppURL(),
+            'errors' => $errorMessages,
+            'controllerName' => $this->controllerName,
         ]);
     }
 
-    /**
-     * @Route("/{id}", name="users_delete", methods={"POST"})
-     */
-    public function delete(Request $request, Users $user): Response
-    {
-        if ($this->isCsrfTokenValid('delete'.$user->getId(), $request->request->get('_token'))) {
-            $entityManager = $this->getDoctrine()->getManager();
-            $entityManager->remove($user);
-            $entityManager->flush();
-        }
 
-        return $this->redirectToRoute('users_index', [], Response::HTTP_SEE_OTHER);
-    }
+
+
 }
