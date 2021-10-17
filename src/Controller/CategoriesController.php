@@ -1,8 +1,8 @@
 <?php
 
 namespace App\Controller;
-
 use App\Entity\Users;
+use App\Form\CategoryType;
 use App\Form\UsersType;
 use App\Repository\UsersRepository;
 use Doctrine\ORM\Query\Expr\Base;
@@ -18,33 +18,34 @@ use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Symfony\Component\PropertyAccess\PropertyAccess;
 use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\Security\Core\Encoder\UserPasswordEncoderInterface;
+use App\Entity\Categories;
+
+use App\Repository\CategoriesRepository;
 
 /**
- * @Route("/users")
+ * @Route("/categories")
  */
-class UsersController extends BaseController
+class CategoriesController extends BaseController
 {
 
-    private UserPasswordEncoderInterface $passwordEncoder;
-    public function __construct(UserPasswordEncoderInterface $passwordEncoder,Security $security)
+    public function __construct(Security $security)
     {
         //Primer elemento nombre en singular, segundo elemento nombre en plural, masculino 0 femenino 1
-        $this->entityNames[0] = "Usuario";
-        $this->entityNames[1] = "Usuarios";
-        $this->entityNames[2] = 0;
-        $this->passwordEncoder = $passwordEncoder;
-        $this->controllerName = "Usuarios";
+        $this->entityNames[0] = "Categoría";
+        $this->entityNames[1] = "Categorias";
+        $this->entityNames[2] = 1;
+        $this->controllerName = "Categorías";
         $this->security = $security;
     }
 
 
     /**
-     * @Route("/", name="users_index", methods={"GET"})
+     * @Route("/", name="categories_index", methods={"GET"})
      */
-    public function index(UsersRepository $usersRepository): Response
+    public function index(CategoriesRepository $categoriesRepository): Response
     {
-        return $this->render('users/index.html.twig', [
-            'users' => $usersRepository->findAll(),
+        return $this->render('categories/index.html.twig', [
+            'categories' => $categoriesRepository->findAll(),
             'appURL' => $this->getAppURL(),
             'entityNames' => $this->entityNames,
             'controllerName' => $this->controllerName,
@@ -53,28 +54,25 @@ class UsersController extends BaseController
     }
 
     /**
-     * @Route("/new", name="users_new", methods={"GET","POST"})
+     * @Route("/new", name="categories_new", methods={"GET","POST"})
      */
     public function new(Request $request,ValidatorInterface $validator): Response
     {
-        $user = new Users();
-        $form = $this->createForm(UsersType::class, $user);
+        $category = new Categories();
+        $form = $this->createForm(CategoryType::class, $category);
         $form->handleRequest($request);
         $errorMessages = [];
         $campos_validados = false;
 
         $all = $request->request->all();
-        if(isset($all['users']['username'])
-            && isset($all['users']['password'])) {
+        if(isset($all['category']['name'])) {
 
             $input = [
-                'username' => $all['users']['username'],
-                'password' => $all['users']['password'],
-                ];
+                'name' => $all['category']['name'],
+            ];
 
             $constraints = new Assert\Collection([
-                'username' => [new Assert\NotBlank],
-                'password' => [new Assert\notBlank],
+                'name' => [new Assert\NotBlank],
             ]);
 
             $violations = $validator->validate($input, $constraints);
@@ -94,39 +92,38 @@ class UsersController extends BaseController
             && $campos_validados == true && sizeof($errorMessages) == 0) {
 
             $entityManager = $this->getDoctrine()->getManager();
-            $user->setCreatedAt(new \DateTimeImmutable('now'));
-            $user->setRoles(array("ROLE_ADMIN"));
-            $user->setPassword($this->passwordEncoder->encodePassword($user, $input['password']));
+            $category->setCreatedAt(new \DateTimeImmutable('now'));
 
-            $entityManager->persist($user);
+            $entityManager->persist($category);
             $entityManager->flush();
 
-            return $this->redirectToRoute('users_index', [], Response::HTTP_SEE_OTHER);
+            return $this->redirectToRoute('categories_index', [], Response::HTTP_SEE_OTHER);
         }
 
-        return $this->renderForm('users/new.html.twig', [
-            'user' => $user,
+        return $this->renderForm('categories/new.html.twig', [
+            'category' => $category,
             'form' => $form,
             'entityNames' => $this->entityNames,
             'appURL' => $this->getAppURL(),
             'errors' => $errorMessages,
             'controllerName' => $this->controllerName,
             'logged_user' => $this->security->getUser(),
+
         ]);
     }
 
     /**
-     * @Route("/{id}", name="users_show", methods={"GET"})
+     * @Route("/{id}", name="categories_show", methods={"GET"})
      */
 
-    public function show(Users $user): Response
+    public function show(Categories $category): Response
     {
         $entityManager = $this->getDoctrine()->getManager();
-        $repositorio = $entityManager->getRepository(Users::class);
-        $form = $this->createForm(UsersType::class, $user);
-        $usuario = $repositorio->find($user);
-        return $this->renderForm('users/show.html.twig', [
-            'user' => $usuario,
+        $repositorio = $entityManager->getRepository(Categories::class);
+        $form = $this->createForm(CategoryType::class, $category);
+        $category = $repositorio->find($category);
+        return $this->renderForm('categories/show.html.twig', [
+            'category' => $category,
             'entityNames' => $this->entityNames,
             'appURL' => $this->getAppURL(),
             'controllerName' => $this->controllerName,
@@ -136,31 +133,28 @@ class UsersController extends BaseController
         ]);
     }
 
+
     /**
-     * @Route("/{id}/edit", name="users_edit", methods={"GET","POST"})
+     * @Route("/{id}/edit", name="categories_edit", methods={"GET","POST"})
      */
-    public function edit(Request $request, Users $user,ValidatorInterface $validator): Response
+    public function edit(Request $request, Categories $category,ValidatorInterface $validator): Response
     {
         $entityManager = $this->getDoctrine()->getManager();
-        $repositorio = $entityManager->getRepository(Users::class);
-        $user = $repositorio->find($user);
-        $user->setPassword("");
-        $form = $this->createForm(UsersType::class, $user);
+        $repositorio = $entityManager->getRepository(Categories::class);
+        $category = $repositorio->find($category);
+        $form = $this->createForm(CategoryType::class, $category);
         $errorMessages = [];
         $campos_validados = false;
 
         $all = $request->request->all();
-        if(isset($all['users']['username'])
-            && isset($all['users']['password'])) {
+        if(isset($all['category']['name'])) {
 
             $input = [
-                'username' => $all['users']['username'],
-                'password' => $all['users']['password'],
+                'name' => $all['category']['name'],
             ];
 
             $constraints = new Assert\Collection([
-                'username' => [new Assert\NotBlank],
-                'password' => [new Assert\notBlank],
+                'name' => [new Assert\NotBlank],
             ]);
 
             $violations = $validator->validate($input, $constraints);
@@ -184,11 +178,11 @@ class UsersController extends BaseController
             && $campos_validados == true && sizeof($errorMessages) == 0) {
             $this->getDoctrine()->getManager()->flush();
 
-            return $this->redirectToRoute('users_index', [], Response::HTTP_SEE_OTHER);
+            return $this->redirectToRoute('categories_index', [], Response::HTTP_SEE_OTHER);
         }
 
-        return $this->renderForm('users/edit.html.twig', [
-            'user' => $user,
+        return $this->renderForm('categories/edit.html.twig', [
+            'category' => $category,
             'form' => $form,
             'entityNames' => $this->entityNames,
             'appURL' => $this->getAppURL(),

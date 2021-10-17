@@ -26,3 +26,23 @@ security:
                 target: app_login
 
     access_control:
+        # require ROLE_ADMIN for /admin*
+        - { path: '^/login', roles: IS_AUTHENTICATED_ANONYMOUSLY}
+        - { path: '^/sign-up', roles: IS_AUTHENTICATED_ANONYMOUSLY}
+        - { path: '^/sign-up/success', roles: IS_AUTHENTICATED_ANONYMOUSLY}
+        - { path: '^/sign-up/error', roles: IS_AUTHENTICATED_ANONYMOUSLY}
+        - { path: '^/users', roles: ROLE_ADMIN }
+        - { path: '^/users/{id}', roles: ROLE_ADMIN }
+        - { path: '^/users/{id}/edit', roles: ROLE_ADMIN }
+        - { path: '^/users/new', roles: ROLE_ADMIN }
+        - { path: '^/categories', roles: ROLE_ADMIN }
+        - { path: '^/categories/{id}', roles: ROLE_ADMIN }
+        - { path: '^/categories/{id}/edit', roles: ROLE_ADMIN }
+        - { path: '^/categories/new', roles: ROLE_ADMIN }
+        - { path: '^/products', roles: ROLE_ADMIN }
+        - { path: '^/products/{id}', roles: ROLE_ADMIN }
+        - { path: '^/products/{id}/edit', roles: ROLE_ADMIN }
+        - { path: '^/products/new', roles: ROLE_ADMIN }
+        - { path: '^/products/{id}/historic', roles: ROLE_ADMIN }
+        - { path: '^/products/{id}/modify_stock', roles: ROLE_ADMIN }
+

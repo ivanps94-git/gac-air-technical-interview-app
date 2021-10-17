@@ -27,3 +27,4 @@ services:
     form_authenticator:
         class: App\Security\UserAuthenticator
         arguments: ["@router"]
+

@@ -28,7 +28,7 @@ class Products
      * @ORM\ManyToOne(targetEntity=Categories::class, inversedBy="products")
      * @ORM\JoinColumn(nullable=false)
      */
-    private $category_id;
+    private $category;
 
     /**
      * @ORM\Column(type="integer")
@@ -67,14 +67,14 @@ class Products
         return $this;
     }
 
-    public function getCategoryId(): ?Categories
+    public function getCategory(): ?Categories
     {
-        return $this->category_id;
+        return $this->category;
     }
 
-    public function setCategoryId(?Categories $category_id): self
+    public function setCategory(?Categories $category): self
     {
-        $this->category_id = $category_id;
+        $this->category = $category;
 
         return $this;
     }
@@ -116,7 +116,7 @@ class Products
     {
         if (!$this->stockHistorics->contains($stockHistoric)) {
             $this->stockHistorics[] = $stockHistoric;
-            $stockHistoric->setProductId($this);
+            $stockHistoric->setProduct($this);
         }
 
         return $this;
@@ -126,8 +126,8 @@ class Products
     {
         if ($this->stockHistorics->removeElement($stockHistoric)) {
             // set the owning side to null (unless already changed)
-            if ($stockHistoric->getProductId() === $this) {
-                $stockHistoric->setProductId(null);
+            if ($stockHistoric->getProduct() === $this) {
+                $stockHistoric->setProduct(null);
             }
         }
 
